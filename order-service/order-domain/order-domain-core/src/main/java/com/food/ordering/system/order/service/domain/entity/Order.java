@@ -186,4 +186,44 @@ public class Order extends AggregateRoot<OrderId> {
             return new Order(this);
         }
     }
+
+    // State changing methods
+    public void pay () {
+        if (orderStatus != OrderStatus.PENDING) {
+            throw new OrderDomainException("Order is not in correct state for payment");
+        }
+        orderStatus = OrderStatus.PAID;
+    }
+
+    public void approve () {
+        if (orderStatus != OrderStatus.PAID) {
+            throw new OrderDomainException("Order is not in correct state for approval");
+        }
+        orderStatus = OrderStatus.APPROVED;
+    }
+
+    public void initCancel (List<String> failureMessages) {
+        if (orderStatus != OrderStatus.PAID) {
+            throw new OrderDomainException("Order is not in correct state for cancellation");
+        }
+        orderStatus = OrderStatus.CANCELLING;
+
+        updateFailureMessages(failureMessages);
+    }
+
+    private void updateFailureMessages(List<String> failureMessages) {
+        if (this.failureMessages != null) {
+            this.failureMessages.addAll(failureMessages.stream().filter(message -> !message.isEmpty()).toList());
+        }
+        if (this.failureMessages == null || this.failureMessages.isEmpty()) {
+            this.failureMessages = failureMessages;
+        }
+    }
+
+    public void cancel () {
+        if (!(orderStatus == OrderStatus.CANCELLING || orderStatus == OrderStatus.PENDING)) {
+            throw new OrderDomainException("Order is not in correct state for cancellation");
+        }
+        orderStatus = OrderStatus.CANCELLED;
+    }
 }
